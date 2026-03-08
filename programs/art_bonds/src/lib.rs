@@ -1,25 +1,23 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("11111111111111111111111111111111"); 
+declare_id!("GZin7CLnKozMWhfvw2Mw4mYUMFUep5phfN3DK5iqFQWB"); 
 
 #[program]
 pub mod art_bonds {
     use super::*;
 
-    // CREATE: Emitir el Bono de Arte (Se crea la PDA)
+    // CREATE: Emitir el Bono de Arte
     pub fn issue_bond(ctx: Context<IssueBond>, principal_amount: u64) -> Result<()> {
         let bond = &mut ctx.accounts.bond_pda;
         let clock = Clock::get()?;
 
-        // Registramos los datos iniciales
         bond.owner = ctx.accounts.user.key();
         bond.principal = principal_amount;
         bond.issue_date = clock.unix_timestamp;
         bond.last_claim_date = clock.unix_timestamp;
         bond.bump = ctx.bumps.bond_pda;
 
-        // Transferimos el SOL a la PDA
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             system_program::Transfer {
@@ -53,12 +51,11 @@ pub mod art_bonds {
         
         msg!("Bono liquidado. Se devolvieron {} lamports al usuario.", bond.principal);
 
-        // Al cerrar la cuenta, Anchor devuelve los fondos al usuario automáticamente.
         Ok(())
     }
 }
 
-// READ: La estructura de datos que se guarda en la blockchain
+// READ: La estructura de datos 
 #[account]
 pub struct BondState {
     pub owner: Pubkey,
@@ -77,7 +74,7 @@ pub struct IssueBond<'info> {
         init,
         payer = user,
         space = 8 + 32 + 8 + 8 + 8 + 1,
-        seeds = [b"bond", user.key().as_ref()], // Aquí definimos que es una PDA
+        seeds = [b"bond", user.key().as_ref()],
         bump
     )]
     pub bond_pda: Account<'info, BondState>,
@@ -93,7 +90,7 @@ pub struct UpdateYield<'info> {
         mut,
         seeds = [b"bond", user.key().as_ref()],
         bump = bond_pda.bump,
-        has_one = owner
+        constraint = bond_pda.owner == user.key() // <-- ¡Aquí está la corrección!
     )]
     pub bond_pda: Account<'info, BondState>,
 }
@@ -105,10 +102,10 @@ pub struct RedeemBond<'info> {
 
     #[account(
         mut,
-        close = user, // Esta instrucción cierra la PDA y hace el "Delete"
+        close = user, 
         seeds = [b"bond", user.key().as_ref()],
         bump = bond_pda.bump,
-        has_one = owner
+        constraint = bond_pda.owner == user.key() // <-- ¡Y aquí también!
     )]
     pub bond_pda: Account<'info, BondState>,
-} 
+}

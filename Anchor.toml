@@ -12,7 +12,7 @@ art_bonds = "GZin7CLnKozMWhfvw2Mw4mYUMFUep5phfN3DK5iqFQWB"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
